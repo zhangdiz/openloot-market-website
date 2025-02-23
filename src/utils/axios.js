@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // 创建 axios 实例
 const instance = axios.create({
-  baseURL: 'https://jsonplaceholder.typicode.com',  // 你可以修改为你的 API 根地址
+  baseURL: 'http://localhost:12001',  // 你可以修改为你的 API 根地址
   timeout: 25000,  // 设置请求超时时间 25秒
 });
 
