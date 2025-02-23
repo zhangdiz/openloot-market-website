@@ -3,6 +3,11 @@ import vue from '@vitejs/plugin-vue';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  server: {
+    host: '0.0.0.0',  // 监听所有的网络地址
+    port: 3001,       // 你可以自定义端口
+    open: false         // 启动时自动打开浏览器
+  },
   plugins: [vue()],
   resolve: {
     alias: {
