@@ -25,6 +25,21 @@
               <span>价格：</span><span>{{ item.price }} USD</span>
             </div>
           </div>
+          <div
+            v-if="item.extra.attributes && item.extra.attributes.length"
+            class="num-list"
+          >
+            <div class="title">数值：</div>
+            <div class="wrapper1">
+              <div
+                v-for="child in item.extra.attributes"
+                :key="child.name"
+                class="item-child"
+              >
+                {{ child.name }}: {{ child.value }}
+              </div>
+            </div>
+          </div>
           <div class="desc">
             <span>属性：</span>
             <span v-html="item.extra.description"></span>
@@ -75,13 +90,38 @@ export default {
         return;
       }
       const arrs = resp.data.items || [];
-      list.value = arrs.map((v) => ({
-        ...v,
-        extra: {
-          ...v.extra,
-          description: v.extra.description.replace(/\n{2,}/g, "<br>"),
-        },
-      }));
+      const formatArrs = [];
+      arrs.forEach((item) => {
+        let description = "";
+        const asterisksIndex = item.extra.description
+          ? item.extra.description.indexOf("***")
+          : -1;
+
+        if (asterisksIndex !== -1) {
+          description = item.extra.description.substring(asterisksIndex); // 加3是为了跳过 "***"
+        }
+        const obj = {
+          ...item,
+          extra: {
+            ...item.extra,
+            description: `<br>${description.replace(/\n{2,}/g, "<br>")}`,
+          },
+        };
+        if (
+          description.indexOf("Increases max health by") !== -1 &&
+          (description.indexOf("increases critical damage by") !== -1 ||
+            description.indexOf("increases critical rate by") !== -1)
+        ) {
+          list.value.push(obj);
+        }
+      });
+      // list.value = arrs.map((v) => ({
+      //   ...v,
+      //   extra: {
+      //     ...v.extra,
+      //     description: v.extra.description.replace(/\n{2,}/g, "<br>"),
+      //   },
+      // }));
       listQuery.value.total = resp.data.totalItems;
     };
 
@@ -138,6 +178,18 @@ export default {
             color: red;
           }
         }
+      }
+    }
+
+    .num-list {
+      margin-bottom: 10px;
+      .title {
+        margin-bottom: 10px;
+        color: blue;
+      }
+      .wrapper1 {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
       }
     }
   }
