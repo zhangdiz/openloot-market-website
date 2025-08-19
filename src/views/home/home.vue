@@ -1,18 +1,22 @@
 <template>
   <div class="home-wrapper">
-    <div class="input-wrapper">
-      <div class="label">商品列表链接：</div>
-      <div class="input">
-        <el-input
-          type="text"
-          v-model="targetUrl"
-          :readonly="isLoading"
-        ></el-input>
-      </div>
-      <div class="btn">
-        <el-button type="primary" :loading="isLoading" @click="handleSearch"
-          >查询</el-button
-        >
+    <div class="input-section">
+      <div class="input-grid">
+        <div class="input-group">
+          <div class="label">Cloud API Key：</div>
+          <el-input type="text" v-model="cloudApiKey" placeholder="请输入 Cloud API Key" :readonly="isLoading"></el-input>
+        </div>
+        <div class="input-group">
+          <div class="label">Proxy URL：</div>
+          <el-input type="text" v-model="proxyUrl" placeholder="请输入 Proxy URL" :readonly="isLoading"></el-input>
+        </div>
+        <div class="input-group">
+          <div class="label">商品列表链接：</div>
+          <el-input type="text" v-model="targetUrl" :readonly="isLoading"></el-input>
+        </div>
+        <div class="button-group">
+          <el-button type="primary" :loading="isLoading" @click="handleSearch">查询</el-button>
+        </div>
       </div>
     </div>
 
@@ -25,19 +29,10 @@
               <span>价格：</span><span>{{ item.price }} USD</span>
             </div>
           </div>
-          <div
-            v-if="item.extra.attributes && item.extra.attributes.length"
-            class="num-list"
-          >
+          <div v-if="item.extra.attributes && item.extra.attributes.length" class="num-list">
             <div class="title">数值：</div>
             <div class="wrapper1">
-              <div
-                v-for="child in item.extra.attributes"
-                :key="child.name"
-                class="item-child"
-              >
-                {{ child.name }}: {{ child.value }}
-              </div>
+              <div v-for="child in item.extra.attributes" :key="child.name" class="item-child">{{ child.name }}: {{ child.value }}</div>
             </div>
           </div>
           <div class="desc">
@@ -51,14 +46,16 @@
 </template>
 
 <script>
-import { ref } from "vue";
-import apiRequest from "@/utils/axios";
+import { ref } from 'vue';
+import apiRequest from '@/utils/axios';
 
 export default {
-  name: "Home",
+  name: 'Home',
   setup() {
     // https://openloot.com/items/WS0/armor_r4
-    const targetUrl = ref("https://openloot.com/items/WS0/armor_r4");
+    const targetUrl = ref('https://openloot.com/items/WS0/armor_r4');
+    const cloudApiKey = ref('');
+    const proxyUrl = ref('');
     const isLoading = ref(false);
     // 请求列表
     const list = ref([]);
@@ -70,63 +67,76 @@ export default {
 
     const fetchList = async () => {
       if (!targetUrl.value) return;
+      if (!cloudApiKey.value) {
+        alert('请输入 Cloud API Key');
+        return;
+      }
+      if (!proxyUrl.value) {
+        alert('请输入 Proxy URL');
+        return;
+      }
       if (isLoading.value) return;
+
       isLoading.value = true;
-      //   const url = "http://84.247.154.10:12001/api/business/listQuery";
-      const url = "/api/business/listQuery";
+      const url = '/api/business/listQuery';
+      // const url = 'http://localhost:12001/api/business/listQuery';
       const params = {
         targetUrl: targetUrl.value,
         onSale: true,
         page: listQuery.value.pageIndex,
         pageSize: listQuery.value.pageSize,
-        sort: "price:asc",
+        sort: 'price:asc',
+        cloudApiKey: cloudApiKey.value,
+        proxyUrl: proxyUrl.value,
       };
-      const resp = await apiRequest.get(url, params);
 
-      isLoading.value = false;
+      try {
+        const resp = await apiRequest.get(url, params);
+        isLoading.value = false;
 
-      if (resp.code !== 200) {
-        alert("请求失败，稍后再试");
-        return;
-      }
-      const arrs = resp.data.items || [];
-      const formatArrs = [];
-      arrs.forEach((item) => {
-        let description = "";
-        const asterisksIndex = item.extra.description
-          ? item.extra.description.indexOf("***")
-          : -1;
-
-        if (asterisksIndex !== -1) {
-          description = item.extra.description.substring(asterisksIndex); // 加3是为了跳过 "***"
+        if (resp.code !== 200) {
+          alert(resp.message || '请求失败，稍后再试');
+          return;
         }
-        const obj = {
-          ...item,
-          extra: {
-            ...item.extra,
-            description: `<br>${description.replace(/\n{2,}/g, "<br>")}`,
-          },
-        };
-        if (
-          description.indexOf("Increases max health by") !== -1 &&
-          (description.indexOf("increases critical damage by") !== -1 ||
-            description.indexOf("increases critical rate by") !== -1)
-        ) {
+
+        if (!resp.data.available) {
+          alert('API配置不可用，请检查配置');
+          return;
+        }
+
+        const arrs = resp.data.items || [];
+        list.value = [];
+        arrs.forEach((item) => {
+          let description = '';
+          const asterisksIndex = item.extra.description ? item.extra.description.indexOf('***') : -1;
+
+          if (asterisksIndex !== -1) {
+            description = item.extra.description.substring(asterisksIndex);
+          }
+          const obj = {
+            ...item,
+            extra: {
+              ...item.extra,
+              description: `<br>${description.replace(/\n{2,}/g, '<br>')}`,
+            },
+          };
+          // if (
+          //   description.indexOf('Increases max health by') !== -1 &&
+          //   (description.indexOf('increases critical damage by') !== -1 || description.indexOf('increases critical rate by') !== -1)
+          // ) {
+          //   list.value.push(obj);
+          // }
           list.value.push(obj);
-        }
-      });
-      // list.value = arrs.map((v) => ({
-      //   ...v,
-      //   extra: {
-      //     ...v.extra,
-      //     description: v.extra.description.replace(/\n{2,}/g, "<br>"),
-      //   },
-      // }));
-      listQuery.value.total = resp.data.totalItems;
+        });
+        listQuery.value.total = resp.data.totalItems;
+      } catch (error) {
+        isLoading.value = false;
+        alert('请求出错: ' + error.message);
+      }
     };
 
     const handleSearch = async () => {
-      console.log(targetUrl.value, "targetUrl ----");
+      console.log(targetUrl.value, 'targetUrl ----');
       fetchList();
     };
 
@@ -135,6 +145,8 @@ export default {
       listQuery,
       isLoading,
       targetUrl,
+      cloudApiKey,
+      proxyUrl,
       handleSearch,
     };
   },
@@ -145,20 +157,51 @@ export default {
 /* 可以加一些样式 */
 .home-wrapper {
   padding: 10px;
-  .input-wrapper {
-    display: flex;
-    align-items: center;
-    .label {
-      margin-right: 10px;
-    }
-    .el-input {
-      width: 350px;
-    }
 
-    .btn {
-      margin-left: 10px;
+  .input-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    border: 1px solid #e4e7ed;
+    border-radius: 8px;
+    background-color: #fafbfc;
+
+    .input-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-gap: 20px;
+      align-items: center;
+
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+      }
+
+      .input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        .label {
+          font-weight: 500;
+          color: #303133;
+        }
+
+        .el-input {
+          width: 100%;
+        }
+      }
+
+      .button-group {
+        display: flex;
+        align-items: end;
+        justify-content: flex-start;
+
+        .el-button {
+          width: 100px;
+        }
+      }
     }
   }
+
   .data-list {
     margin-top: 20px;
     min-height: 500px;
