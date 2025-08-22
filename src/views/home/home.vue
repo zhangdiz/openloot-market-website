@@ -87,8 +87,8 @@ export default {
       if (isLoading.value) return;
 
       isLoading.value = true;
-      // const url = '/api/business/listQuery';
-      const url = 'http://localhost:12001/api/business/listQuery';
+      const url = '/api/business/listQuery';
+      // const url = 'http://localhost:12001/api/business/listQuery';
       const params = {
         targetUrl: targetUrl.value,
         onSale: true,
