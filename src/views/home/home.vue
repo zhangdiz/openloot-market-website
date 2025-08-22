@@ -11,8 +11,15 @@
           <el-input type="text" v-model="proxyUrl" placeholder="请输入 Proxy URL" :readonly="isLoading"></el-input>
         </div>
         <div class="input-group">
-          <div class="label">商品列表链接：</div>
+          <div class="label">商品list链接：</div>
           <el-input type="text" v-model="targetUrl" :readonly="isLoading"></el-input>
+        </div>
+        <div class="input-group">
+          <el-checkbox-group v-model="checkList">
+            <el-checkbox label="Charges" value="Charges"></el-checkbox>
+            <el-checkbox label="Level" value="Level"></el-checkbox>
+          </el-checkbox-group>
+          <!-- <el-checkbox v-model="levelOption" label="Level大于 1 级" size="large" /> -->
         </div>
         <div class="button-group">
           <el-button type="primary" :loading="isLoading" @click="handleSearch">查询</el-button>
@@ -45,7 +52,7 @@
   </div>
 </template>
 
-<script>
+<script step>
 import { ref } from 'vue';
 import apiRequest from '@/utils/axios';
 
@@ -57,6 +64,8 @@ export default {
     const cloudApiKey = ref('');
     const proxyUrl = ref('');
     const isLoading = ref(false);
+    // const levelOption = ref(false);
+    const checkList = ref(['Charges', 'Level']);
     // 请求列表
     const list = ref([]);
     const listQuery = ref({
@@ -78,8 +87,8 @@ export default {
       if (isLoading.value) return;
 
       isLoading.value = true;
-      const url = '/api/business/listQuery';
-      // const url = 'http://localhost:12001/api/business/listQuery';
+      // const url = '/api/business/listQuery';
+      const url = 'http://localhost:12001/api/business/listQuery';
       const params = {
         targetUrl: targetUrl.value,
         onSale: true,
@@ -126,7 +135,25 @@ export default {
           // ) {
           //   list.value.push(obj);
           // }
-          list.value.push(obj);
+          const chargesInfo = item.extra.attributes.find((v) => v.display === 'Charges');
+          const levelInfo = item.extra.attributes.find((v) => v.display === 'Level');
+
+          if (!checkList.value.length) {
+            list.value.push(obj);
+            return;
+          }
+          if (checkList.value.length === 2) {
+            if (Number(chargesInfo.value) > 0 && levelInfo.value !== 'Ⅰ') {
+              list.value.push(obj);
+            }
+            return;
+          }
+          if (
+            (checkList.value.includes('Charges') && Number(chargesInfo.value) > 0) ||
+            (checkList.value.includes('Level') && levelInfo.value !== 'Ⅰ')
+          ) {
+            list.value.push(obj);
+          }
         });
         listQuery.value.total = resp.data.totalItems;
       } catch (error) {
@@ -147,6 +174,7 @@ export default {
       targetUrl,
       cloudApiKey,
       proxyUrl,
+      checkList,
       handleSearch,
     };
   },
@@ -167,22 +195,23 @@ export default {
 
     .input-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, 1fr);
       grid-gap: 20px;
       align-items: center;
 
       @media (max-width: 768px) {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(1, 1fr);
       }
 
       .input-group {
         display: flex;
-        flex-direction: column;
+        align-items: center;
         gap: 8px;
 
         .label {
           font-weight: 500;
           color: #303133;
+          white-space: nowrap;
         }
 
         .el-input {
